@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<!-- Länk till trafikverket api: https://data.trafikverket.se/home -->
+<!-- Länk till routing apier: https://project-osrm.org/ , https://openrouteservice.org/ -->
+<head>
+    <title>Trafikverket Hackaton 2025</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="icon" type="image/png" href="favicon.ico">
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+        #map {
+            height: 100vh;
+            width: 100vw;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script>
+        // Skapa karta med Sverige som start position.
+        const map = L.map("map").setView([60.128161, 18.643501], 5);
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+        }).addTo(map);
+        
+        // Funktion för att markera användarens plats.
+        function setLocation(e) {
+            const radius = e.accuracy / 2;
+
+            map.setView(e.latlng, 13);
+            
+            var iconOptions = { iconUrl: '/static/person-circle.svg', iconSize: [50, 50] };
+            var userIcon = L.icon(iconOptions);
+            
+            var markerOptions = { title: 'UserLocation', clickable: true, draggable: false, icon: userIcon };
+            L.marker(e.latlng, markerOptions)
+                .addTo(map)
+                .bindPopup("Du är inom " + Math.round(radius) + " meter av denna punkt")
+                .openPopup();
+            
+            L.circle(e.latlng, radius).addTo(map);
+        }
+        
+        map.on('locationfound', setLocation);
+
+        map.locate({setView: false, maxZoom: 16});
+
+        const parkings_url = '/api/parkings';
+
+        fetch(parkings_url)
+            .then(response => response.json())
+            .then(data => {
+                const parkings = data.RESPONSE.RESULT[0].Parking;
+                
+                parkings.forEach(parking => {
+                    if (parking.Geometry && parking.Geometry.WGS84) {
+                        const coords = parking.Geometry.WGS84.replace('POINT (', '').replace(')', '').split(' ');
+                        const lon = parseFloat(coords[0]);
+                        const lat = parseFloat(coords[1]);
+
+                        if (!isNaN(lat) && !isNaN(lon)) {
+                            L.marker([lat, lon])
+                                .addTo(map)
+                                .bindPopup(parking.Name || 'Parking');
+                        }
+                    }
+                });
+            })
+            .catch(error => {
+                console.error("Ett fel inträffade vid hämtning av parkeringar:", error);
+            });
+    </script>
+</body>
+
+</html>
+
