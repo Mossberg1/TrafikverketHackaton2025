@@ -71,7 +71,7 @@
     <script>
         let userLocation = null;
         let searchMarker = null;
-        let allParkingMarkers = []; // Lagra alla parkeringsmarkörer
+        let allParkingMarkers = []; 
 
         // Skapa karta med Sverige som start position.
         const map = L.map("map").setView([60.128161, 18.643501], 5);
@@ -125,9 +125,6 @@
                     hiddenCount++;
                 }
             });
-
-            console.log(`Visar ${visibleCount} parkeringar inom ${maxDistance}m från rutten`);
-            console.log(`Döljer ${hiddenCount} parkeringar som är för långt från rutten`);
         }
 
         // Händelselyssnare för när en rutt hittas
@@ -135,10 +132,6 @@
             if (e.routes && e.routes.length > 0) {
                 const route = e.routes[0];
                 const routeCoordinates = route.coordinates;
-
-                console.log('Ruttens koordinater:', routeCoordinates);
-                console.log('Total distans (meter):', route.summary.totalDistance);
-                console.log('Total tid (sekunder):', route.summary.totalTime);
 
                 // Filtrera parkeringar baserat på rutten
                 filterParkingsByRoute(routeCoordinates);
