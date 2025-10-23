@@ -71,6 +71,7 @@
     <script>
         let userLocation = null;
         let searchMarker = null;
+        let parkingMarkers = new Array();
 
         // Skapa karta med Sverige som start position.
         const map = L.map("map").setView([60.128161, 18.643501], 5);
@@ -190,6 +191,8 @@
                                     alert("Väntar fortfarande på din plats. Försök igen om en stund.");
                                 }
                             });
+
+                            parkingMarkers.push(marker);
                         }
                     }
                 });
@@ -251,6 +254,12 @@
                                 userLocation, 
                                 locationLatLng
                             ]);
+                        }
+
+                        for (let i = 0; i < parkingMarkers.length; i++) {
+                            if (parkingMarkers[i]) {
+                                map.removeLayer(parkingMarkers[i]);
+                            }
                         }
                     });
                     routingControl.show()
