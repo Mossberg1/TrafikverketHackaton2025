@@ -86,15 +86,6 @@
             show: false 
         }).addTo(map);
 
-        /*
-        const routingControl = L.Routing.control({
-            waypoints: [
-                L.latLng(57.74, 11.94),
-                L.latLng(57.6792, 11.949)
-            ]
-        }).addTo(map);
-        */
-
         // Funktion för att markera användarens plats.
         function setLocation(e) {
             const radius = e.accuracy / 2;
@@ -141,19 +132,36 @@
                         if (!isNaN(lat) && !isNaN(lon)) {
                             const parkingLatLng = L.latLng(lat, lon);
                             
+                            let parkingInfo = `${parking.Name}`;
+                            if (parking.Description != undefined) {
+                                parkingInfo += "<br>" + parking.Description
+                            }
+
+                            if (parking.OpenStatus === "open") {
+                                parkingInfo += "<br>Status: Öppen"
+                            }
+                            else {
+                                parkingInfo += "<br>Status: Stängd"
+                            }
+
+                            const characteristics = parking.VehicleCharacteristics;
+                            console.log(characteristics)
+                            for (let i = 0; i < characteristics.length; i++) {
+                                parkingInfo += `<br>${characteristics[i].VehicleType}: ${characteristics[i].NumberOfSpaces}`
+                            }
+
                             const marker = L.marker(parkingLatLng)
                                 .addTo(map)
-                                .bindPopup(parking.Name || 'Parking');
+                                .bindPopup(parkingInfo);
 
-                            // 3. Lägg till en klickhändelse på varje parkeringsmarkör
                             marker.on('click', function() {
-                                // 4. Sätt rutten när en parkering klickas
+                                // Hämta rutt från användarens position till parkeringen.
                                 if (userLocation) {
                                     routingControl.setWaypoints([
-                                        userLocation,    // Start: Användarens plats
-                                        parkingLatLng  // Slut: Klickad parkering
+                                        userLocation,    
+                                        parkingLatLng  
                                     ]);
-                                    routingControl.show(); // Visa ruttinstruktionerna
+                                    routingControl.show();
                                 } else {
                                     alert("Väntar fortfarande på din plats. Försök igen om en stund.");
                                 }
