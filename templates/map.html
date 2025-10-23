@@ -219,9 +219,17 @@
                         .openPopup();
 
                     // Centrera kartan på den sökta platsen
-                    map.setView(locationLatLng, 13);
-
+                    map.setView(locationLatLng, 13);     
                     
+                    searchMarker.on('click', function() {
+                        if (userLocation) {
+                            routingControl.setWaypoints([
+                                userLocation, 
+                                locationLatLng
+                            ]);
+                        }
+                    });
+                    routingControl.show()
 
                 } else {
                     alert(data.error || 'Kunde inte hitta platsen');
