@@ -204,6 +204,7 @@
 
                             const marker = L.marker(parkingLatLng)
                                 .addTo(map)
+                                .bindTooltip(parkingInfo)
                                 .bindPopup(parkingInfo);
 
                             // Spara markör och position för filtrering
