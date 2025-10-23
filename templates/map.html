@@ -71,6 +71,7 @@
     <script>
         let userLocation = null;
         let searchMarker = null;
+        let allParkingMarkers = []; // Lagra alla parkeringsmarkörer
 
         // Skapa karta med Sverige som start position.
         const map = L.map("map").setView([60.128161, 18.643501], 5);
@@ -86,29 +87,63 @@
             show: false 
         }).addTo(map);
 
-        // NY KOD: Lägg till denna händelselyssnare
+        // Funktion för att beräkna kortaste avståndet från en parkering till rutten
+        function distanceToRoute(parkingLatLng, routeCoords) {
+            if (!routeCoords || routeCoords.length === 0) return Infinity;
+
+            let minDistance = Infinity;
+            // Kolla avståndet till varje koordinat i rutten
+            for (let i = 0; i < routeCoords.length; i++) {
+                const distance = parkingLatLng.distanceTo(routeCoords[i]);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                }
+            }
+            return minDistance;
+        }
+
+        // Funktion för att filtrera parkeringar baserat på rutten
+        function filterParkingsByRoute(routeCoordinates) {
+            const maxDistance = 1000; // 1 km från rutten
+            let visibleCount = 0;
+            let hiddenCount = 0;
+
+            allParkingMarkers.forEach(markerData => {
+                const distance = distanceToRoute(markerData.position, routeCoordinates);
+
+                if (distance <= maxDistance) {
+                    // Visa parkering som är nära rutten
+                    if (!map.hasLayer(markerData.marker)) {
+                        markerData.marker.addTo(map);
+                    }
+                    visibleCount++;
+                } else {
+                    // Dölj parkering som är för långt från rutten
+                    if (map.hasLayer(markerData.marker)) {
+                        map.removeLayer(markerData.marker);
+                    }
+                    hiddenCount++;
+                }
+            });
+
+            console.log(`Visar ${visibleCount} parkeringar inom ${maxDistance}m från rutten`);
+            console.log(`Döljer ${hiddenCount} parkeringar som är för långt från rutten`);
+        }
+
+        // Händelselyssnare för när en rutt hittas
         routingControl.on('routesfound', function(e) {
-            // e.routes är en array av rutter, vi tar oftast den första (e.routes[0])
             if (e.routes && e.routes.length > 0) {
                 const route = e.routes[0];
-                
-                // Detta är arrayen med alla L.LatLng-objekt för rutten
-                const routeCoordinates = route.coordinates; 
+                const routeCoordinates = route.coordinates;
 
                 console.log('Ruttens koordinater:', routeCoordinates);
-                
-                // Du kan också komma åt annan användbar information
                 console.log('Total distans (meter):', route.summary.totalDistance);
                 console.log('Total tid (sekunder):', route.summary.totalTime);
 
-                // Exempel: Logga första och sista koordinaten
-                if (routeCoordinates.length > 0) {
-                    console.log('Startpunkt:', routeCoordinates[0]);
-                    console.log('Slutpunkt:', routeCoordinates[routeCoordinates.length - 1]);
-                }
+                // Filtrera parkeringar baserat på rutten
+                filterParkingsByRoute(routeCoordinates);
             }
         });
-        // SLUT PÅ NY KOD
 
         // Funktion för att markera användarens plats.
         function setLocation(e) {
@@ -178,12 +213,18 @@
                                 .addTo(map)
                                 .bindPopup(parkingInfo);
 
+                            // Spara markör och position för filtrering
+                            allParkingMarkers.push({
+                                marker: marker,
+                                position: parkingLatLng
+                            });
+
                             marker.on('click', function() {
                                 // Hämta rutt från användarens position till parkeringen.
                                 if (userLocation) {
                                     routingControl.setWaypoints([
-                                        userLocation,    
-                                        parkingLatLng  
+                                        userLocation,
+                                        parkingLatLng
                                     ]);
                                     routingControl.show();
                                 } else {
