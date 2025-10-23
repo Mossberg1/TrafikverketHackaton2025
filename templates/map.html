@@ -22,14 +22,55 @@
             width: 100vw;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
+        #search-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            display: flex;
+            gap: 8px;
+        }
+        #search-input {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 300px;
+        }
+        #search-button {
+            padding: 8px 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        #search-button:hover {
+            background-color: #45a049;
+        }
+        #search-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 
 <body>
+    <div id="search-container">
+        <input type="text" id="search-input" placeholder="Sök efter plats i Sverige..." />
+        <button id="search-button">Sök</button>
+    </div>
     <div id="map"></div>
 
     <script>
         let userLocation = null;
+        let searchMarker = null;
 
         // Skapa karta med Sverige som start position.
         const map = L.map("map").setView([60.128161, 18.643501], 5);
@@ -83,6 +124,12 @@
         fetch(parkings_url)
             .then(response => response.json())
             .then(data => {
+                // Kontrollera att data finns och har rätt struktur
+                if (!data || !data.RESPONSE || !data.RESPONSE.RESULT || !data.RESPONSE.RESULT[0] || !data.RESPONSE.RESULT[0].Parking) {
+                    console.error("Ingen parkeringsdata tillgänglig");
+                    return;
+                }
+
                 const parkings = data.RESPONSE.RESULT[0].Parking;
                 
                 parkings.forEach(parking => {
@@ -118,6 +165,77 @@
             .catch(error => {
                 console.error("Ett fel inträffade vid hämtning av parkeringar:", error);
             });
+
+        // Sökfunktionalitet
+        const searchInput = document.getElementById('search-input');
+        const searchButton = document.getElementById('search-button');
+
+        async function performSearch() {
+            const query = searchInput.value.trim();
+            if (!query) {
+                alert('Vänligen ange en sökfråga');
+                return;
+            }
+
+            searchButton.disabled = true;
+            searchButton.textContent = 'Söker...';
+
+            try {
+                const response = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    const lat = data.lat;
+                    const lon = data.lon;
+                    const locationLatLng = L.latLng(lat, lon);
+
+                    // Ta bort tidigare sökmarkör om den finns
+                    if (searchMarker) {
+                        map.removeLayer(searchMarker);
+                    }
+
+                    // Skapa en anpassad ikon för sökresultatet
+                    const searchIcon = L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41],
+                        popupAnchor: [1, -34],
+                        shadowSize: [41, 41]
+                    });
+
+                    // Placera markör på den sökta platsen
+                    searchMarker = L.marker(locationLatLng, { icon: searchIcon })
+                        .addTo(map)
+                        .bindPopup(`<b>${data.display_name}</b><br><small>Klicka på en parkering för att få vägbeskrivning härifrån</small>`)
+                        .openPopup();
+
+                    // Centrera kartan på den sökta platsen
+                    map.setView(locationLatLng, 13);
+
+                    
+
+                } else {
+                    alert(data.error || 'Kunde inte hitta platsen');
+                }
+            } catch (error) {
+                console.error('Sökfel:', error);
+                alert('Ett fel uppstod vid sökning');
+            } finally {
+                searchButton.disabled = false;
+                searchButton.textContent = 'Sök';
+            }
+        }
+
+        // Sök när användaren klickar på knappen
+        searchButton.addEventListener('click', performSearch);
+
+        // Sök när användaren trycker Enter i sökfältet
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
     </script>
 </body>
 
