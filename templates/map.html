@@ -29,19 +29,30 @@
     <div id="map"></div>
 
     <script>
+        let userLocation = null;
+
         // Skapa karta med Sverige som start position.
         const map = L.map("map").setView([60.128161, 18.643501], 5);
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         }).addTo(map);
-            
-        L.Routing.control({
+          
+        const routingControl = L.Routing.control({
+            waypoints: [],
+            routeWhileDragging: true,
+            collapsible: true,
+            show: false 
+        }).addTo(map);
+
+        /*
+        const routingControl = L.Routing.control({
             waypoints: [
                 L.latLng(57.74, 11.94),
                 L.latLng(57.6792, 11.949)
             ]
         }).addTo(map);
+        */
 
         // Funktion för att markera användarens plats.
         function setLocation(e) {
@@ -59,6 +70,8 @@
                 .openPopup();
             
             L.circle(e.latlng, radius).addTo(map);
+
+            userLocation = e.latlng;
         }
         
         map.on('locationfound', setLocation);
@@ -79,9 +92,25 @@
                         const lat = parseFloat(coords[1]);
 
                         if (!isNaN(lat) && !isNaN(lon)) {
-                            L.marker([lat, lon])
+                            const parkingLatLng = L.latLng(lat, lon);
+                            
+                            const marker = L.marker(parkingLatLng)
                                 .addTo(map)
                                 .bindPopup(parking.Name || 'Parking');
+
+                            // 3. Lägg till en klickhändelse på varje parkeringsmarkör
+                            marker.on('click', function() {
+                                // 4. Sätt rutten när en parkering klickas
+                                if (userLocation) {
+                                    routingControl.setWaypoints([
+                                        userLocation,    // Start: Användarens plats
+                                        parkingLatLng  // Slut: Klickad parkering
+                                    ]);
+                                    routingControl.show(); // Visa ruttinstruktionerna
+                                } else {
+                                    alert("Väntar fortfarande på din plats. Försök igen om en stund.");
+                                }
+                            });
                         }
                     }
                 });
