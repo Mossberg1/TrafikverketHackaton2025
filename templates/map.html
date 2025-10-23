@@ -86,6 +86,30 @@
             show: false 
         }).addTo(map);
 
+        // NY KOD: Lägg till denna händelselyssnare
+        routingControl.on('routesfound', function(e) {
+            // e.routes är en array av rutter, vi tar oftast den första (e.routes[0])
+            if (e.routes && e.routes.length > 0) {
+                const route = e.routes[0];
+                
+                // Detta är arrayen med alla L.LatLng-objekt för rutten
+                const routeCoordinates = route.coordinates; 
+
+                console.log('Ruttens koordinater:', routeCoordinates);
+                
+                // Du kan också komma åt annan användbar information
+                console.log('Total distans (meter):', route.summary.totalDistance);
+                console.log('Total tid (sekunder):', route.summary.totalTime);
+
+                // Exempel: Logga första och sista koordinaten
+                if (routeCoordinates.length > 0) {
+                    console.log('Startpunkt:', routeCoordinates[0]);
+                    console.log('Slutpunkt:', routeCoordinates[routeCoordinates.length - 1]);
+                }
+            }
+        });
+        // SLUT PÅ NY KOD
+
         // Funktion för att markera användarens plats.
         function setLocation(e) {
             const radius = e.accuracy / 2;
